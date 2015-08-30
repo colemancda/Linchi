@@ -3,21 +3,156 @@
 //  Linchi
 //
 
-// TODO: implement a structure conforming to this protocol
-// There is no need to keep this protocol around after creating the structure
-protocol URLRouter {
+struct URLTrieNode {
 
-    // The complexity of these two methods should be almost independant from the number of urls inside the router.
-    // (Try a trie)
-    // 
-    // Once implemented, URLRouter should render `Page` useless.
+    typealias ParamsIndex = Int
+    typealias TextsIndex = Dictionary<String, URLTrieNode>.Index
     
-    // Associate the given ResponseWriter to the url and method
-    func add(method: HTTPMethod, url: String, rw: ResponseWriter)
+    private var responseWriter : ResponseWriter?
+    private var texts : [String : URLTrieNode]
+    private var params: [(name: String, regex: RegEx, child: URLTrieNode)]
     
-    // Find the ResponseWriter associated with the string and method and
-    // return the parameters, if any, included in the url
-    func get(method: HTTPMethod, url: String) -> (rw: ResponseWriter, params: [String: String])
+    /// Creates an empty URLTrieNode
+    init() {
+        self.responseWriter = nil
+        self.texts = [:]
+        self.params = []
+    }
+    
+    /// Index type for accessing a child of `self`
+    private enum Index {
+        case InTexts(idx: TextsIndex, key: String)
+        case InParams(ParamsIndex)
+    }
+
+    private subscript(idx: URLTrieNode.Index) -> URLTrieNode {
+        get {
+            switch idx {
+            case .InTexts(let textsIdx, _): return texts[textsIdx].1
+            case .InParams(let paramsIdx) : return params[paramsIdx].child
+            }
+        }
+        set {
+            switch idx {
+            case .InTexts(_, let key)    : texts[key] = newValue
+            case .InParams(let paramsIdx): params[paramsIdx].child = newValue
+            }
+        }
+    }
+
+    /**
+    Returns the index of the child that matches the given string,
+    with a preference for an exact match over one that uses a regex.
+    Returns nil if no match was found.
+    */
+    private func indexThatMatches(string: String) -> URLTrieNode.Index? {
+
+        if let dicIdx = texts.indexForKey(string) {
+            return URLTrieNode.Index.InTexts(idx: dicIdx, key: string)
+        }
+        
+        if let arrIdx = params.indexOf({ $0.regex.matches(string) }) {
+            return .InParams(arrIdx)
+        }
+
+        return nil
+    }
+    
+    /**
+    Returns the index of the child associated with the given URLPatternElement,
+    or nil if there is no such child.
+    */
+    private func indexOfPatternElement(element: URLPatternElement) -> URLTrieNode.Index? {
+
+        switch element {
+        case .Text(let string):
+            guard let textsIndex = texts.indexForKey(string) else { return nil }
+            return .InTexts(idx: textsIndex, key: string)
+
+        case .Parameter(_, let regex):
+            guard let paramsIdx = params.indexOf({$0.regex.pattern == regex.pattern}) else { return nil }
+            return .InParams(paramsIdx)
+        }
+    }
+
+    /**
+    Adds an empty child to `self`, associate it with the given URLPatternElement, and
+    returns the index of the child.
+    */
+    private mutating func addPatternElement(element: URLPatternElement) -> URLTrieNode.Index {
+        
+        switch element {
+        
+        case .Text(let string):
+            texts[string] = URLTrieNode()
+            return .InTexts(idx: texts.indexForKey(string)!, key: string)
+        
+        case .Parameter(let name, let regex):
+            params.append((name, regex, URLTrieNode()))
+            return .InParams(params.endIndex.predecessor())
+        }
+    }
+
+    /** 
+    Returns the response writer associated with the URLPattern that matches the url,
+    or nil if no pattern matches the url
+    */
+    func find(url: String) -> ResponseWriter? {
+
+        let beforeInterrogationMark = url.splitOnce("?")?.0 ?? url
+        let split = beforeInterrogationMark.split("/")
+
+        var gen = split.generate()
+
+        func findRecursively(trie: URLTrieNode) -> ResponseWriter? {
+            
+            guard let urlComponent = gen.next() else { return trie.responseWriter }
+            guard let index = trie.indexThatMatches(urlComponent) else { return nil }
+
+            return findRecursively(trie[index])
+        }
+
+        return findRecursively(self)
+    }
+    
+    /// Associates a ResponseWriter to a URLPattern
+    mutating func add(pattern: URLPattern, responseWriter: ResponseWriter) {
+
+        var gen = pattern.generate()
+
+        func traverseThenCreateBranch(inout node: URLTrieNode) {
+            
+            guard let patternElement = gen.next() else { return createBranch(&node) }
+
+            guard let index = node.indexOfPatternElement(patternElement) else {
+                let newIndex = node.addPatternElement(patternElement)
+                return createBranch(&node[newIndex])
+            }
+
+            traverseThenCreateBranch(&node[index])
+        }
+
+        func createBranch(inout node: URLTrieNode) {
+            guard let patternElement = gen.next() else { return node.responseWriter = responseWriter }
+
+            let newIndex = node.addPatternElement(patternElement)
+            createBranch(&node[newIndex])
+        }
+
+        return traverseThenCreateBranch(&self)
+    }
+    
+
 }
+
+
+
+
+
+
+
+
+
+
 
 

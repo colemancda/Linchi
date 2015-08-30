@@ -2,9 +2,6 @@
 //  String-Manipulation-Tests.swift
 //  Linchi
 //
-//  Created by Loïc Lecrenier on 8/23/15.
-//  Copyright © 2015 Loïc Lecrenier. All rights reserved.
-//
 
 import XCTest
 @testable import Linchi

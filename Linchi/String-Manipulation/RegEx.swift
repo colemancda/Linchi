@@ -7,10 +7,12 @@ import Darwin
 
 internal struct RegEx {
     
+    internal let pattern: String
     private let re : regex_t
     
     /// Initializes the regex using the given pattern. Will fail if the pattern is not a correct regex
     init?(_ pattern: String) {
+        self.pattern = pattern
         var regex = regex_t()
         guard regcomp(&regex, pattern, REG_EXTENDED) == 0 else { return nil }
         self.re = regex
