@@ -82,7 +82,7 @@ internal struct URLPattern : SequenceType {
     internal func matches(url: String) -> (matches: Bool, params: [String: String]) {
         
         let split1 = url.splitOnce("?")
-        let withoutGETParameters = split1 == nil ? url : split1!.0
+        let withoutGETParameters = split1?.0 ?? url
         
         let components = withoutGETParameters.split("/")
         guard components.count == elements.count else { return (false, [:]) }
