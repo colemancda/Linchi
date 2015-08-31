@@ -11,7 +11,7 @@ internal func parseRequest(message: HTTPMessage) -> HTTPRequest? {
     print(statusTokens)
     
     guard statusTokens.count == 3 else { return nil }
-    guard let method = HTTPMethod.fromString(statusTokens.first!) else { return nil }
+    guard let method = HTTPMethod(rawValue: statusTokens.first!) else { return nil }
     guard statusTokens.last!.uppercaseString == "HTTP/1.1" else { return nil }
 
     let path = statusTokens[1]
