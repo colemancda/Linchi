@@ -10,8 +10,8 @@ import Darwin
 public class HTTPServer {
 
     public var defaultResponseWriters = DefaultResponseWriters()
-    // Replace with URLRouter once it is implemented
-    internal var router : [Page] = []
+
+    public var router = URLRouter()
     private var passiveSocket = PassiveSocket.defaultInvalidSocket()
 
     /// Start the server at the given port (default: 8080)
@@ -38,13 +38,13 @@ public class HTTPServer {
             // having implemented concurrency can block other connections.
             let keepAlive = false //request.headers["connection"] == "keep-alive"
 
-            guard let (writeResponse, params) = findResponseWriterAndURLParameters(request.method, url: request.url) else {
+            let cleanUrl = request.url.newByReplacingPlusesBySpaces().newByRemovingPercentEncoding()
+            
+            guard let (writeResponse, params) = router.find(request.method, url: cleanUrl) else {
                 activeSocket.respond(defaultResponseWriters.notFound(request), keepAlive: keepAlive)
                 if keepAlive { continue } else { break }
             }
 
-            // I also don't like that the request has to be updated.
-            // Would be nice to include `params` in the request directly
             let updatedRequest = HTTPRequest(
                 method           : request.method,
                 url              : request.url,
@@ -62,41 +62,10 @@ public class HTTPServer {
         activeSocket.release()
     }
 
-
-    private func findResponseWriterAndURLParameters(method: HTTPMethod, url: String) -> (ResponseWriter, [String: String])? {
-        
-        let urlString = url.newByReplacingPlusesBySpaces().newByRemovingPercentEncoding()
-        
-        // In the future, all of this will be replaced by the appropriate method on a URLRouter structure
-        let correctMethodPages = router.filter { $0.method == method }
-        
-        for page in correctMethodPages {
-            let match = page.url.matches(urlString)
-            if match.0 == true {
-                return (page.responseWriter, match.1)
-            }
-        }
-        return nil
-    }
-
-    /// Access or modify the url router
-    public subscript (method: HTTPMethod, rawUrl: String) -> ResponseWriter? {
-        get {
-            return nil
-        }
-        set (newValue) {
-            if let newHandler = newValue {
-                let urlpattern = URLPattern(str: rawUrl)!
-                let newPage = Page(method: method, url: urlpattern, responseWriter: newHandler)
-                router.append(newPage)
-            }
-        }
-    }
-
     /// Add the files in the cache to the url router of the server
-    func addFiles(cache: FileCache) {
+    func addCachedFiles(cache: FileCache) {
         for (url, data) in cache {
-            self[.GET, url] = BasicResponseWriters.sendData(data)
+            router.add(.GET, url, handler: BasicResponseWriters.sendData(data))
         }
     }
 

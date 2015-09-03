@@ -94,25 +94,32 @@ struct URLTrieNode {
     }
 
     /** 
-    Returns the response writer associated with the URLPattern that matches the url,
+    Returns the response writer and parameters associated with the URLPattern that matches the url,
     or nil if no pattern matches the url
     */
-    func find(url: String) -> ResponseWriter? {
+    func find(url: String) -> (rw: ResponseWriter, urlParameters: [String: String])? {
 
         let beforeInterrogationMark = url.splitOnce("?")?.0 ?? url
         let split = beforeInterrogationMark.split("/")
 
+        var urlParameters = [String: String]()
         var gen = split.generate()
 
         func findRecursively(trie: URLTrieNode) -> ResponseWriter? {
             
             guard let urlComponent = gen.next() else { return trie.responseWriter }
             guard let index = trie.indexThatMatches(urlComponent) else { return nil }
-
+            
+            if case .InParams(let paramsIdx) = index {
+                urlParameters[trie.params[paramsIdx].name] = urlComponent
+            }
+            
             return findRecursively(trie[index])
         }
-
-        return findRecursively(self)
+        
+        guard let rw = findRecursively(self) else { return nil }
+        
+        return (rw, urlParameters)
     }
     
     /// Associates a ResponseWriter to a URLPattern
@@ -142,17 +149,4 @@ struct URLTrieNode {
         return traverseThenCreateBranch(&self)
     }
     
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
