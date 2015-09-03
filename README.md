@@ -18,7 +18,6 @@ every contribution is highly appreciated 😊
 Here are the main issues right now (this section will be regularly updated):
 - The majority of the code is not tested
 - HTTPServer doesn't handle connections asynchronously
-- URLRouter is not yet implemented, which leaves us with an inefficient solution
 - There is no limit to the length of the url or body of a request
 - A few methods are not documented
 
