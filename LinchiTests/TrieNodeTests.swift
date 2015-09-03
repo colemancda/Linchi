@@ -61,11 +61,11 @@ class TrieNodeTests : XCTestCase {
             let (match, dontmatch) = value
 
             for x in match {
-                XCTAssertEqual(readRW(trie.find(x)), key)
+                XCTAssertEqual(readRW(trie.find(x)?.rw), key)
             }
             
             for x in dontmatch {
-                XCTAssertNotEqual(readRW(trie.find(x)), key)
+                XCTAssertNotEqual(readRW(trie.find(x)?.rw), key)
             }
         }
         
