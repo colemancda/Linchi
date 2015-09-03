@@ -17,7 +17,7 @@ will be represented as an array of these `URLPatternElement`:
 Because the urls are separated by "/", the regexes or raw strings
 CANNOT contain any "/".
 */
-private enum URLPatternElement {
+internal enum URLPatternElement {
     case Text(String)
     case Parameter(name: String, pattern: RegEx)
     
@@ -49,7 +49,7 @@ __Rules for the initialization string:__
     - a regex prefixed by "∆: " (with a trailing space!)
 - No slashes in the regex
 */
-internal struct URLPattern {
+internal struct URLPattern : SequenceType {
 
     private let elements : [URLPatternElement]
 
@@ -82,7 +82,7 @@ internal struct URLPattern {
     internal func matches(url: String) -> (matches: Bool, params: [String: String]) {
         
         let split1 = url.splitOnce("?")
-        let withoutGETParameters = split1 == nil ? url : split1!.0
+        let withoutGETParameters = split1?.0 ?? url
         
         let components = withoutGETParameters.split("/")
         guard components.count == elements.count else { return (false, [:]) }
@@ -103,6 +103,11 @@ internal struct URLPattern {
 
         return (true, params)
     }
+
+    func generate() -> IndexingGenerator<[URLPatternElement]> {
+        return elements.generate()
+    }
+    
 }
 
 

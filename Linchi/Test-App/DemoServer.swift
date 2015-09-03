@@ -10,24 +10,24 @@ let DEMO_SERVER = DemoServer()
 class DemoServer : HTTPServer {
     
     let basePath : String
-    var cachedFiles : FileCache
+    var fileCache : FileCache
 
     override init() {
         
         self.basePath = "\(PROJECT_DIR)/"
-        self.cachedFiles = FileCache()
+        self.fileCache = FileCache()
         
         super.init()
 
-        try! cachedFiles.addFilesInDirectory(basePath + "static/", url: "static/")
-        self.addFiles(cachedFiles)
+        try! fileCache.addFilesInDirectory(basePath + "static/", url: "static/")
+        self.addCachedFiles(fileCache)
         
-        guard let page404 = cachedFiles["static/404.html"] else { fatalError() }
+        guard let page404 = fileCache["static/404.html"] else { fatalError() }
         self.defaultResponseWriters.notFound = BasicResponseWriters.sendData(page404)
 
-        self[.GET, "/"] = HomePage.getMainPage
-        self[.GET, "/hello/∆: greeter=\(RegEx.CharClass.Printable)+"] = HomePage.greetFriend
-        self[.POST, "/hello/∆: greeter=\(RegEx.CharClass.Printable)+"] = HomePage.greetFriend
+        router.add(.GET, "/", handler: HomePage.getMainPage)
+        router.add(.GET, "/hello/∆: greeter=\(RegEx.CharClass.Printable)+", handler: HomePage.greetFriend)
+        router.add(.POST, "/hello/∆: greeter=\(RegEx.CharClass.Printable)+", handler: HomePage.greetFriend)
     }
     
 }

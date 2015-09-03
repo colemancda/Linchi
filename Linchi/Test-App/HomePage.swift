@@ -9,7 +9,7 @@ struct HomePage {
 
     static func getMainPage(request: HTTPRequest) -> HTTPResponse {
         
-        guard let data = DEMO_SERVER.cachedFiles["static/index.html"] else {
+        guard let data = DEMO_SERVER.fileCache["static/index.html"] else {
             return DEMO_SERVER.defaultResponseWriters.notFound(request)
         }
 

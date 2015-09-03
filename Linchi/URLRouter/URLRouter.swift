@@ -3,21 +3,30 @@
 //  Linchi
 //
 
-// TODO: implement a structure conforming to this protocol
-// There is no need to keep this protocol around after creating the structure
-protocol URLRouter {
+// TODO: documentation
 
-    // The complexity of these two methods should be almost independant from the number of urls inside the router.
-    // (Try a trie)
-    // 
-    // Once implemented, URLRouter should render `Page` useless.
+public struct URLRouter {
     
-    // Associate the given ResponseWriter to the url and method
-    func add(method: HTTPMethod, url: String, rw: ResponseWriter)
-    
-    // Find the ResponseWriter associated with the string and method and
-    // return the parameters, if any, included in the url
-    func get(method: HTTPMethod, url: String) -> (rw: ResponseWriter, params: [String: String])
+    private var tries: [HTTPMethod: URLTrieNode] = [:]
+
+    internal func find(method: HTTPMethod, url: String) -> (ResponseWriter, [String: String])? {
+        
+        guard let (params, rw) = tries[method]?.find(url) else { return nil }
+        
+        return (params, rw)
+    }
+
+    public mutating func add(method: HTTPMethod, _ url: String, handler: ResponseWriter) {
+        
+        guard let pattern = URLPattern(str: url) else {
+            fatalError("The url pattern ‘ \(url) ’ is not valid.")
+        }
+        
+        if tries[method] == nil {
+            tries[method] = URLTrieNode()
+        }
+        
+        tries[method]!.add(pattern, responseWriter: handler)
+    }
 }
-
 
